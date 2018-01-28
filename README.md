@@ -1,3 +1,3 @@
-# prefix
+# postfix
 
-C prefix notation library
+C postfix notation library
