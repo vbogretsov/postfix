@@ -4,7 +4,7 @@
 #include <check.h>
 #include <postfix.h>
 
-#include <stdio.h>
+// #include <stdio.h>
 
 #define TEST_LOG "postfix_test.log"
 

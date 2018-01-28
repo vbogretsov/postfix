@@ -1,10 +1,15 @@
+/**
+ * Postfix notation library.
+ * 
+ * Copyright (C) Vladimir Bogretsov <bogrecov@gmail.com>
+ */
 #include "postfix.h"
 
-#include <stdio.h>
+// #include <stdio.h>
 
 #define ISTERM(token) ((token).type == PX_TOKEN_TERM)
-#define ISVAR(token)  ((token).type == PX_TOKEN_VAR)
-#define ISFUNC(token) ((token).type > PX_TOKEN_RBRC)
+// #define ISVAR(token)  ((token).type == PX_TOKEN_VAR)
+// #define ISFUNC(token) ((token).type > PX_TOKEN_RBRC)
 #define ISLBRC(token) ((token).type == PX_TOKEN_LBRC)
 #define ISRBRC(token) ((token).type == PX_TOKEN_RBRC)
 
@@ -62,33 +67,34 @@ int px_parse(px_token_t* infix, px_token_t** postfix, px_prio_t prio)
         }
 
         px_token_t token = infix[i];
-        if (ISVAR(token))
+        switch (token.type)
         {
-            STACK_PUSH(*postfix, token);
-        }
-        else if (ISRBRC(token))
-        {
-            px_token_t t;
-            while (!ISLBRC(t = STACK_POP(sp)))
-            {
-                if (ISTERM(t))
+            case PX_TOKEN_VAR:
+                STACK_PUSH(*postfix, token);
+                break;
+            case PX_TOKEN_LBRC:
+                STACK_PUSH(sp, token);
+                break;
+            case PX_TOKEN_RBRC:
                 {
-                    return PX_E_UNMATCHED_BRACKET;
+                    px_token_t t;
+                    while (!ISLBRC(t = STACK_POP(sp)))
+                    {
+                        if (ISTERM(t))
+                        {
+                            return PX_E_UNMATCHED_BRACKET;
+                        }
+                        STACK_PUSH(*postfix, t);
+                    }
                 }
-                STACK_PUSH(*postfix, t);
-            }
-        }
-        else if (ISFUNC(token))
-        {
-            while (prio(token) <= prio(STACK_TOP(sp)))
-            {
-                STACK_PUSH(*postfix, STACK_POP(sp));
-            }
-            STACK_PUSH(sp, token);
-        }
-        else
-        {
-            STACK_PUSH(sp, token);
+                break;
+            default:
+                while (prio(token) <= prio(STACK_TOP(sp)))
+                {
+                    STACK_PUSH(*postfix, STACK_POP(sp));
+                }
+                STACK_PUSH(sp, token);
+                break;
         }
     }
 
