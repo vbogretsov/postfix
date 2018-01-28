@@ -1,6 +1,12 @@
 # Prerequisites
 *.d
 
+# Logs
+*.log
+
+# Binary files
+*.bin
+
 # Object files
 *.o
 *.ko
