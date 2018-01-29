@@ -69,6 +69,23 @@ do                                                                            \
     ck_assert(err == (code));                                                 \
 } while(0)
 
+#define _PX_BINARY_OP(op)                                                     \
+do                                                                            \
+{                                                                             \
+    if (sp == bp)                                                             \
+    {                                                                         \
+        return PX_E_MISSING_ARGUMENT;                                         \
+    }                                                                         \
+    int64_t a = PX_STACK_POP(sp).i64;                                         \
+    if (sp == bp)                                                             \
+    {                                                                         \
+        return PX_E_MISSING_ARGUMENT;                                         \
+    }                                                                         \
+    int64_t b = PX_STACK_POP(sp).i64;                                         \
+    PX_STACK_PUSH(sp, (px_value_t){.i64 = a op b});                           \
+    return PX_SUCCESS;                                                        \
+} while (0)
+
 enum
 {
     _PX_TEST_TOKEN_ADD = PX_TOKEN_RBRC + 1,
@@ -77,18 +94,33 @@ enum
     _PX_TEST_TOKEN_DIV,
 };
 
-static int _px_add(px_token_t* sp, void* ctx)
+static int _px_add(px_value_t* bp, px_value_t* sp, void* ctx)
 {
-    return 0;
+    _PX_BINARY_OP(+);
+}
+
+static int _px_sub(px_value_t* bp, px_value_t* sp, void* ctx)
+{
+    _PX_BINARY_OP(-);
+}
+
+static int _px_mul(px_value_t* bp, px_value_t* sp, void* ctx)
+{
+    _PX_BINARY_OP(*);
+}
+
+static int _px_div(px_value_t* bp, px_value_t* sp, void* ctx)
+{
+    _PX_BINARY_OP(/);
 }
 
 static const px_token_t _PX_TERM = _PX_TOKEN(0, i, PX_TOKEN_TERM);
 static const px_token_t _PX_LBRC = _PX_TOKEN('(', c, PX_TOKEN_LBRC);
 static const px_token_t _PX_RBRC = _PX_TOKEN(')', c, PX_TOKEN_RBRC);
-static const px_token_t _PX_ADD  = _PX_TOKEN('+', c, _PX_TEST_TOKEN_ADD);
-static const px_token_t _PX_SUB  = _PX_TOKEN('-', c, _PX_TEST_TOKEN_SUB);
-static const px_token_t _PX_MUL  = _PX_TOKEN('*', c, _PX_TEST_TOKEN_MUL);
-static const px_token_t _PX_DIV  = _PX_TOKEN('/', c, _PX_TEST_TOKEN_DIV);
+static const px_token_t _PX_ADD  = _PX_TOKEN(_px_add, p, _PX_TEST_TOKEN_ADD);
+static const px_token_t _PX_SUB  = _PX_TOKEN(_px_sub, p, _PX_TEST_TOKEN_SUB);
+static const px_token_t _PX_MUL  = _PX_TOKEN(_px_mul, p, _PX_TEST_TOKEN_MUL);
+static const px_token_t _PX_DIV  = _PX_TOKEN(_px_div, p, _PX_TEST_TOKEN_DIV);
 
 static int _PX_TEST_PRIO_MAP[] =
 {
