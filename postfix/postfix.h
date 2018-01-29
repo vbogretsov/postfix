@@ -28,6 +28,7 @@ enum {
     PX_E_STAK_OVERFLOW,
     PX_E_UNEXPECTED_TOKEN,
     PX_E_MISSING_ARGUMENT,
+    PX_E_STACK_CORRUPTED,
 };
 
 #define PX_LEN(array) sizeof((array))/sizeof((*array))
@@ -57,7 +58,7 @@ typedef struct
     int        type;
 } px_token_t;
 
-typedef int (*px_func_t)(px_value_t*, px_value_t*, void*);
+typedef int (*px_func_t)(px_value_t*, px_value_t**, void*);
 typedef int (*px_prio_t)(px_token_t);
 
 /*

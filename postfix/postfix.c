@@ -15,46 +15,11 @@
 #define ISLBRC(token) ((token).type == PX_TOKEN_LBRC)
 #define ISRBRC(token) ((token).type == PX_TOKEN_RBRC)
 
-// #define STACK_PUSH(sp, value) (*(sp)++ = value)
-// #define STACK_POP(sp)         (*--(sp))
-// #define STACK_TOP(sp)         (*((sp) - 1))
-
 static const px_token_t PX_TERM = (px_token_t)
 {
     .value.i = 0,
     .type = PX_TOKEN_TERM
 };
-
-// ****************************************************************************
-static void print_token(px_token_t t)
-{
-    // printf("%s:", "token");
-    // if (t.type == PX_TOKEN_VAR)
-    // {
-    //     printf(" %d", t.value.i64);
-    // }
-    // else if (t.type == PX_TOKEN_TERM)
-    // {
-    //     printf("%s", "TERM");
-    // }
-    // else
-    // {
-    //     printf("char %c", (char)t.value.c);
-    // }
-    // printf("%s\n", "");
-    printf("{.value = %d, .type = %d}\n", t.value.i64, t.type);
-}
-
-// static void print_stack(px_token_t* sp)
-// {
-//     printf("%s\n", "print_stack");
-//     px_token_t t;
-//     while (!ISTERM(t = STACK_POP(sp)))
-//     {
-//         print_token(t);
-//     }
-// }
-// ****************************************************************************
 
 int px_parse(px_token_t* infix, px_token_t* postfix, px_prio_t prio)
 {
@@ -134,7 +99,7 @@ int px_eval(px_token_t* postfix, void* ctx, px_value_t* res)
         {
             px_func_t func = (px_func_t)token.value.p;
 
-            int err = func(stack, sp, ctx);
+            int err = func(stack, &sp, ctx);
             if (err != PX_SUCCESS)
             {
                 return err;
@@ -146,6 +111,11 @@ int px_eval(px_token_t* postfix, void* ctx, px_value_t* res)
         }
     }
 
-    *res = *sp;
+    if (sp - stack != 1)
+    {
+        return PX_E_STACK_CORRUPTED;
+    }
+
+    *res = PX_STACK_POP(sp);
     return PX_SUCCESS;
 }
