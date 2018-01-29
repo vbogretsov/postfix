@@ -7,8 +7,6 @@
 
 #include <stdlib.h>
 
-#include <stdio.h>
-
 #define ISTERM(token) ((token).type == PX_TOKEN_TERM)
 #define ISVAR(token)  ((token).type == PX_TOKEN_VAR)
 #define ISFUNC(token) ((token).type > PX_TOKEN_RBRC)

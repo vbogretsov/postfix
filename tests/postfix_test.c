@@ -5,8 +5,6 @@
 #include <check.h>
 #include <postfix.h>
 
-#include <stdio.h>
-
 #define TEST_LOG "postfix_test.log"
 
 #define _PX_TOKEN(v, vt, tt) (px_token_t){.value.vt = (v), .type = (tt)}
