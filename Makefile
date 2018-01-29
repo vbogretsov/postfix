@@ -1,9 +1,9 @@
 # TODO: custom flags for tests
 CC             = clang
 LD             = clang
-DIROBJ         = .obj
-DIRBIN         = .bin
-DIRLIB         = .lib
+DIROBJ         = obj
+DIRBIN         = bin
+DIRLIB         = lib
 DIRDEPS        = deps
 DIRSRC         = postfix
 DIRTESTSRC     = tests
@@ -11,15 +11,17 @@ DIRCHECK       = $(DIRDEPS)/check
 DIRCHECLIB     = $(DIRCHECK)/src/.libs
 CHEKMAKE       = $(DIRCHECK)/Makefile
 CCFLAGS       += -g -I$(DIRCHECK)/src/ -I$(DIRCHECK) -I$(DIRSRC)
-LDFLAGS       += -L$(DIRLIB) -lcheck
+LDFLAGS       += -L$(DIRLIB)
 SRC           := $(wildcard $(DIRSRC)/*.c)
 OBJ           := $(addprefix $(DIROBJ)/,$(notdir $(SRC:.c=.o)))
 TESTSRC       := $(wildcard $(DIRTESTSRC)/*.c)
-TESOBJ        := $(addprefix $(DIROBJ)/,$(notdir $(TESTSRC:.c=.o)))
+TESTOBJ        := $(addprefix $(DIROBJ)/,$(notdir $(TESTSRC:.c=.o)))
 TEST           = $(DIRBIN)/postfixtest
 LIBCHECK       = $(DIRLIB)/libcheck.a
+LIBPOSTFIX     = $(DIRLIB)/libpostfix.a
 
-default: test
+default: $(LIBPOSTFIX)
+	echo $(LDFLAGS)
 
 $(DIROBJ): $(DIRBIN)
 	@mkdir -p $@
@@ -33,18 +35,21 @@ $(DIRLIB):
 $(CHEKMAKE):
 	@cd $(DIRCHECK) && autoreconf --install && ./configure
 
-$(LIBCHECK): $(DIRLIB)
-	@cd $(DIRCHECK) && make && make check
+$(LIBCHECK): $(DIRLIB) $(DIRCHECK)
+	@cd $(DIRCHECK) && make
 	@cp $(DIRCHECLIB)/libcheck.a $@
+
+$(LIBPOSTFIX): $(OBJ) $(DIRLIB)
+	$(AR) -rsc $@ $(OBJ)
 
 $(DIROBJ)/%.o: $(DIRSRC)/%.c $(DIROBJ)
 	$(CC) $(CCFLAGS) -c $< -o $@
 
-$(DIROBJ)/%.o: $(DIRTESTSRC)/%.c $(DIROBJ) $(DIRCHECLIB)
+$(DIROBJ)/%.o: $(DIRTESTSRC)/%.c $(DIROBJ)
 	$(CC) $(CCFLAGS) -c $< -o $@
 
-$(TEST): $(OBJ) $(TESOBJ) $(LIBCHECK)
-	$(LD) $(LDFLAGS) -o $@ $^
+$(TEST): $(TESTOBJ) $(LIBCHECK) $(LIBPOSTFIX)
+	$(LD) $(LDFLAGS) -lcheck -lpostfix -o $@ $(TESTOBJ)
 
 test: $(TEST)
 	$(TEST)
@@ -52,5 +57,5 @@ test: $(TEST)
 clean:
 	rm -rf $(DIROBJ)
 	rm -rf $(DIRBIN)
-	# rm -rf $(DIRLIB)
-	# cd $(DIRCHECK) && make clean
+	rm -rf $(DIRLIB)
+	cd $(DIRCHECK) && make clean
