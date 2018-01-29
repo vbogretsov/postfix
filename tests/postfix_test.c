@@ -86,10 +86,10 @@ static int _px_div(px_value_t* bp, px_value_t** sp, void* ctx)
 static const px_token_t _PX_TERM = _PX_TOKEN(0, i, PX_TOKEN_TERM);
 static const px_token_t _PX_LBRC = _PX_TOKEN('(', c, PX_TOKEN_LBRC);
 static const px_token_t _PX_RBRC = _PX_TOKEN(')', c, PX_TOKEN_RBRC);
-static const px_token_t _PX_ADD  = _PX_TOKEN(_px_add, p, _PX_TEST_TOKEN_ADD);
-static const px_token_t _PX_SUB  = _PX_TOKEN(_px_sub, p, _PX_TEST_TOKEN_SUB);
-static const px_token_t _PX_MUL  = _PX_TOKEN(_px_mul, p, _PX_TEST_TOKEN_MUL);
-static const px_token_t _PX_DIV  = _PX_TOKEN(_px_div, p, _PX_TEST_TOKEN_DIV);
+static const px_token_t _PX_ADD  = _PX_TOKEN(_px_add, op, _PX_TEST_TOKEN_ADD);
+static const px_token_t _PX_SUB  = _PX_TOKEN(_px_sub, op, _PX_TEST_TOKEN_SUB);
+static const px_token_t _PX_MUL  = _PX_TOKEN(_px_mul, op, _PX_TEST_TOKEN_MUL);
+static const px_token_t _PX_DIV  = _PX_TOKEN(_px_div, op, _PX_TEST_TOKEN_DIV);
 
 static int _PX_TEST_PRIO_MAP[] =
 {

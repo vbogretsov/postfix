@@ -9,7 +9,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define PX_STACK_SIZE 1000
+#define PX_STACK_SIZE 1 << 10
 
 #define PX_STACK_PUSH(sp, value) (*(sp)++ = (value))
 #define PX_STACK_POP(sp)         (*--(sp))
@@ -37,51 +37,60 @@ enum {
 #define PX_TOKEN_VALUE
 #endif
 
-typedef union
-{
-    bool    b;
-    char    c;
-    int     i;
-    float   f;
-    double  d;
-    void*   p;
-    int8_t  i8;
-    int16_t i16;
-    int32_t i32;
-    int64_t i64;
-    PX_TOKEN_VALUE
-} px_value_t;
-
-typedef struct
-{
-    px_value_t value;
-    int        type;
-} px_token_t;
+typedef union  px_value px_value_t;
+typedef struct px_token px_token_t;
 
 typedef int (*px_func_t)(px_value_t*, px_value_t**, void*);
 typedef int (*px_prio_t)(px_token_t);
 
+union px_value
+{
+    bool      b;
+    char      c;
+    int       i;
+    float     f;
+    double    d;
+    void*     p;
+    int8_t    i8;
+    int16_t   i16;
+    int32_t   i32;
+    int64_t   i64;
+    px_func_t op;
+    PX_TOKEN_VALUE
+};
+
+struct px_token
+{
+    px_value_t value;
+    int        type;
+};
+
 /*
- * Make postfix notation from the infix notation.
+ * Create postfix notation for expression provided in the infix notation.
  *
- * @param infix   Infix notation, should be terminated with token of type
- *                PX_TOKEN_TERM.
- * @param postfix Pointer to array of tokens in postifx notation, should have
- *                enough size to store all the tokens (use PX_LEN(infix)),
- *                after function returns *postifx will point to the head of
- *                postfix notation, postfix notation will be terminated with
- *                token of type PX_TOKEN_TERM.
- * @param prio    Should return non negative priority of a token, if token type
- *                is unexpected it should return -1.
- * @return        PX_SUCCESS if postfix notation created,
- *                PX_E_UNMATCHED_BRACKET if infix expression contains unmatched
- *                pair of brackets,
- *                PX_E_STAK_OVERFLOW if infix expression is too big.
+ * @param infix   Infix notaion terminated with PX_TERM.
+ * @param postfix Empty array for postfix notation, should have enough space
+ *                (use PX_LEN(infix)), will be terminated with PX_TOKEN_TERM.
+ * @param prio    Function to calculate priority of a token.
+ * @return        PX_SUCCESS - if postfix notation was successfully built,
+ *                PX_E_UNMATCHED_BRACKET - if infix notation contains unmatched
+ *                brackets,
+ *                PX_E_STAK_OVERFLOW - if infix notation exceeds PX_STACK_SIZE.
  */
 int px_parse(px_token_t* infix, px_token_t* postfix, px_prio_t prio);
 
 /*
- * Evaluate expression in the postfix notation.
+ * Evaluate expression provided in the postfix notation.
+ *
+ * @param postfix Expression in postfix notation terminated with PX_TOKEN_TERM.
+ * @param ctx     Closure context for operators represented ad px_func_t.
+ * @param res     Calculation result.
+ * @return        PX_SUCCESS - if evaluation succeeded,
+ *                PX_E_UNEXPECTED_TOKEN - if postfix contains token that is not
+ *                variable or function.
+ *                PX_E_STACK_CORRUPTED - if stack size is not 1 at the end of
+ *                calculation (which can be cause by incorrect implementation
+ *                of px_func_t).
  */
 int px_eval(px_token_t* postfix, void* ctx, px_value_t* res);
 

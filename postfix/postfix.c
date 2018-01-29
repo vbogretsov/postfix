@@ -97,9 +97,7 @@ int px_eval(px_token_t* postfix, void* ctx, px_value_t* res)
         }
         else if (ISFUNC(token))
         {
-            px_func_t func = (px_func_t)token.value.p;
-
-            int err = func(stack, &sp, ctx);
+            int err = token.value.op(stack, &sp, ctx);
             if (err != PX_SUCCESS)
             {
                 return err;
