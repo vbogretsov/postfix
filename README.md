@@ -70,7 +70,7 @@ tokens of `infix` except of brackets. User can use the macro `PX_LEN` if
 `postfix` array will contain tokens of expression in the postfix notation
 terminated by the token with type `PX_TOKEN_TERM`.
 
-The parameter `prio` is a pointer to function with the following signature:
+The parameter `prio` is a pointer to a function with the following signature:
 
 ```C
 int prio(px_token_t);
@@ -78,6 +78,8 @@ int prio(px_token_t);
 
 It returns priority of a token. The library assumes this function always
 returns correct values.
+
+TODO
 
 ## Licence
 
