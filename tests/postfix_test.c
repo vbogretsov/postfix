@@ -1,10 +1,11 @@
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
 #include <check.h>
 #include <postfix.h>
 
-// #include <stdio.h>
+#include <stdio.h>
 
 #define TEST_LOG "postfix_test.log"
 
@@ -12,11 +13,11 @@
 do                                                                            \
 {                                                                             \
     ck_assert((exp).type == (act).type);                                      \
-    ck_assert((exp).value == (act).value);                                    \
+    ck_assert((exp).value.i64 == (act).value.i64);                            \
 } while (0)
 
-#define _PX_TOKEN(v, t) (px_token_t){.value = (v), .type = (t)}
-#define _PX_VAR(value) _PX_TOKEN(PX_VAL(value), PX_TOKEN_VAR)
+#define _PX_TOKEN(v, vt, tt) (px_token_t){.value.vt = (v), .type = (tt)}
+#define _PX_VAR(value, type) _PX_TOKEN(value, type, PX_TOKEN_VAR)
 
 // ****************************************************************************
 // #define ISTERM(token) ((token).type == PX_TOKEN_TERM)
@@ -29,7 +30,7 @@ do                                                                            \
 // {
 //     if (t.type == PX_TOKEN_VAR)
 //     {
-//         printf(" %d", (int)t.value);
+//         printf(" %d", t.value.i);
 //     }
 //     else if (t.type == PX_TOKEN_TERM)
 //     {
@@ -37,7 +38,7 @@ do                                                                            \
 //     }
 //     else
 //     {
-//         printf(" %c", (char)t.value);
+//         printf(" %c", (char)t.value.c);
 //     }
 // }
 
@@ -76,13 +77,18 @@ enum
     _PX_TEST_TOKEN_DIV,
 };
 
-static const px_token_t _PX_TERM = _PX_TOKEN(NULL, PX_TOKEN_TERM);
-static const px_token_t _PX_LBRC = _PX_TOKEN(PX_VAL('('), PX_TOKEN_LBRC);
-static const px_token_t _PX_RBRC = _PX_TOKEN(PX_VAL(')'), PX_TOKEN_RBRC);
-static const px_token_t _PX_ADD  = _PX_TOKEN(PX_VAL('+'), _PX_TEST_TOKEN_ADD);
-static const px_token_t _PX_SUB  = _PX_TOKEN(PX_VAL('-'), _PX_TEST_TOKEN_SUB);
-static const px_token_t _PX_MUL  = _PX_TOKEN(PX_VAL('*'), _PX_TEST_TOKEN_MUL);
-static const px_token_t _PX_DIV  = _PX_TOKEN(PX_VAL('/'), _PX_TEST_TOKEN_DIV);
+static int _px_add(px_token_t* sp, void* ctx)
+{
+    return 0;
+}
+
+static const px_token_t _PX_TERM = _PX_TOKEN(0, i, PX_TOKEN_TERM);
+static const px_token_t _PX_LBRC = _PX_TOKEN('(', c, PX_TOKEN_LBRC);
+static const px_token_t _PX_RBRC = _PX_TOKEN(')', c, PX_TOKEN_RBRC);
+static const px_token_t _PX_ADD  = _PX_TOKEN('+', c, _PX_TEST_TOKEN_ADD);
+static const px_token_t _PX_SUB  = _PX_TOKEN('-', c, _PX_TEST_TOKEN_SUB);
+static const px_token_t _PX_MUL  = _PX_TOKEN('*', c, _PX_TEST_TOKEN_MUL);
+static const px_token_t _PX_DIV  = _PX_TOKEN('/', c, _PX_TEST_TOKEN_DIV);
 
 static int _PX_TEST_PRIO_MAP[] =
 {
@@ -110,6 +116,7 @@ static void px_assert_stack_eq(px_token_t* sp_exp, px_token_t* sp_act)
     while ((*sp_exp).type != PX_TOKEN_TERM && (*sp_act).type != PX_TOKEN_TERM)
     {
         _PX_TOKEN_EQ(*sp_exp, *sp_act);
+
         --sp_exp;
         --sp_act;
     }
@@ -145,14 +152,14 @@ START_TEST(test_parse_single_var)
 {
     px_token_t infix[] =
     {
-        _PX_VAR(1),
+        _PX_VAR(1, i64),
         _PX_TERM,
     };
 
     px_token_t expected[] =
     {
         _PX_TERM,
-        _PX_VAR(1),
+        _PX_VAR(1, i64),
     };
 
     _TEST_PX_PARSE_SUCCESS(infix, expected);
@@ -163,17 +170,17 @@ START_TEST(test_parse_binary_op)
 {
     px_token_t infix[] =
     {
-        _PX_VAR(2),
+        _PX_VAR(2, i64),
         _PX_ADD,
-        _PX_VAR(2),
+        _PX_VAR(2, i64),
         _PX_TERM,
     };
 
     px_token_t expected[] =
     {
         _PX_TERM,
-        _PX_VAR(2),
-        _PX_VAR(2),
+        _PX_VAR(2, i64),
+        _PX_VAR(2, i64),
         _PX_ADD,
     };
 
@@ -185,20 +192,20 @@ START_TEST(test_parse_different_prio)
 {
     px_token_t infix[] =
     {
-        _PX_VAR(2),
+        _PX_VAR(2, i64),
         _PX_ADD,
-        _PX_VAR(3),
+        _PX_VAR(3, i64),
         _PX_MUL,
-        _PX_VAR(4),
+        _PX_VAR(4, i64),
         _PX_TERM,
     };
 
     px_token_t expected[] =
     {
         _PX_TERM,
-        _PX_VAR(2),
-        _PX_VAR(3),
-        _PX_VAR(4),
+        _PX_VAR(2, i64),
+        _PX_VAR(3, i64),
+        _PX_VAR(4, i64),
         _PX_MUL,
         _PX_ADD,
     };
@@ -212,22 +219,22 @@ START_TEST(test_parse_brackets_simple)
     px_token_t infix[] =
     {
         _PX_LBRC,
-        _PX_VAR(2),
+        _PX_VAR(2, i64),
         _PX_ADD,
-        _PX_VAR(3),
+        _PX_VAR(3, i64),
         _PX_RBRC,
         _PX_MUL,
-        _PX_VAR(4),
+        _PX_VAR(4, i64),
         _PX_TERM,
     };
 
     px_token_t expected[] =
     {
         _PX_TERM,
-        _PX_VAR(2),
-        _PX_VAR(3),
+        _PX_VAR(2, i64),
+        _PX_VAR(3, i64),
         _PX_ADD,
-        _PX_VAR(4),
+        _PX_VAR(4, i64),
         _PX_MUL,
     };
 
@@ -241,46 +248,46 @@ START_TEST(test_parse_brackets_complex)
     {
         _PX_LBRC,
         _PX_LBRC,
-        _PX_VAR(2),
+        _PX_VAR(2, i64),
         _PX_ADD,
-        _PX_VAR(3),
+        _PX_VAR(3, i64),
         _PX_RBRC,
         _PX_DIV,
-        _PX_VAR(2),
+        _PX_VAR(2, i64),
         _PX_MUL,
         _PX_LBRC,
-        _PX_VAR(3),
+        _PX_VAR(3, i64),
         _PX_ADD,
-        _PX_VAR(4),
+        _PX_VAR(4, i64),
         _PX_DIV,
-        _PX_VAR(2),
+        _PX_VAR(2, i64),
         _PX_RBRC,
         _PX_DIV,
         _PX_LBRC,
-        _PX_VAR(1),
+        _PX_VAR(1, i64),
         _PX_ADD,
-        _PX_VAR(1),
+        _PX_VAR(1, i64),
         _PX_RBRC,
         _PX_RBRC,
         _PX_ADD,
-        _PX_VAR(1),
+        _PX_VAR(1, i64),
         _PX_SUB,
-        _PX_VAR(2),
+        _PX_VAR(2, i64),
         _PX_ADD,
-        _PX_VAR(5),
+        _PX_VAR(5, i64),
         _PX_MUL,
-        _PX_VAR(6),
+        _PX_VAR(6, i64),
         _PX_SUB,
         _PX_LBRC,
-        _PX_VAR(1),
+        _PX_VAR(1, i64),
         _PX_ADD,
-        _PX_VAR(2),
+        _PX_VAR(2, i64),
         _PX_MUL,
-        _PX_VAR(3),
+        _PX_VAR(3, i64),
         _PX_MUL,
-        _PX_VAR(4),
+        _PX_VAR(4, i64),
         _PX_DIV,
-        _PX_VAR(2),
+        _PX_VAR(2, i64),
         _PX_RBRC,
         _PX_TERM,
     };
@@ -288,36 +295,36 @@ START_TEST(test_parse_brackets_complex)
     px_token_t expected[] =
     {
         _PX_TERM,
-        _PX_VAR(2),
-        _PX_VAR(3),
+        _PX_VAR(2, i64),
+        _PX_VAR(3, i64),
         _PX_ADD,
-        _PX_VAR(2),
+        _PX_VAR(2, i64),
         _PX_DIV,
-        _PX_VAR(3),
-        _PX_VAR(4),
-        _PX_VAR(2),
+        _PX_VAR(3, i64),
+        _PX_VAR(4, i64),
+        _PX_VAR(2, i64),
         _PX_DIV,
         _PX_ADD,
         _PX_MUL,
-        _PX_VAR(1),
-        _PX_VAR(1),
+        _PX_VAR(1, i64),
+        _PX_VAR(1, i64),
         _PX_ADD,
         _PX_DIV,
-        _PX_VAR(1),
+        _PX_VAR(1, i64),
         _PX_ADD,
-        _PX_VAR(2),
+        _PX_VAR(2, i64),
         _PX_SUB,
-        _PX_VAR(5),
-        _PX_VAR(6),
+        _PX_VAR(5, i64),
+        _PX_VAR(6, i64),
         _PX_MUL,
         _PX_ADD,
-        _PX_VAR(1),
-        _PX_VAR(2),
-        _PX_VAR(3),
+        _PX_VAR(1, i64),
+        _PX_VAR(2, i64),
+        _PX_VAR(3, i64),
         _PX_MUL,
-        _PX_VAR(4),
+        _PX_VAR(4, i64),
         _PX_MUL,
-        _PX_VAR(2),
+        _PX_VAR(2, i64),
         _PX_DIV,
         _PX_ADD,
         _PX_SUB,
@@ -334,19 +341,19 @@ START_TEST(test_parse_brackets_nested)
         _PX_LBRC,
         _PX_LBRC,
         _PX_LBRC,
-        _PX_VAR(1),
+        _PX_VAR(1, i64),
         _PX_ADD,
         _PX_LBRC,
-        _PX_VAR(2),
+        _PX_VAR(2, i64),
         _PX_RBRC,
         _PX_RBRC,
         _PX_RBRC,
         _PX_MUL,
         _PX_LBRC,
         _PX_LBRC,
-        _PX_VAR(3),
+        _PX_VAR(3, i64),
         _PX_SUB,
-        _PX_VAR(1),
+        _PX_VAR(1, i64),
         _PX_RBRC,
         _PX_RBRC,
         _PX_RBRC,
@@ -356,11 +363,11 @@ START_TEST(test_parse_brackets_nested)
     px_token_t expected[] =
     {
         _PX_TERM,
-        _PX_VAR(1),
-        _PX_VAR(2),
+        _PX_VAR(1, i64),
+        _PX_VAR(2, i64),
         _PX_ADD,
-        _PX_VAR(3),
-        _PX_VAR(1),
+        _PX_VAR(3, i64),
+        _PX_VAR(1, i64),
         _PX_SUB,
         _PX_MUL,
     };
@@ -405,9 +412,9 @@ START_TEST(test_parse_unmatched_bracket_simple)
     {
         _PX_LBRC,
         _PX_LBRC,
-        _PX_VAR(2),
+        _PX_VAR(2, i64),
         _PX_ADD,
-        _PX_VAR(3),
+        _PX_VAR(3, i64),
         _PX_RBRC,
         _PX_TERM,
     };
@@ -422,46 +429,46 @@ START_TEST(test_parse_unmatched_bracket_complex)
     {
         _PX_LBRC,
         _PX_LBRC,
-        _PX_VAR(2),
+        _PX_VAR(2, i64),
         _PX_ADD,
-        _PX_VAR(3),
+        _PX_VAR(3, i64),
         _PX_RBRC,
         _PX_DIV,
-        _PX_VAR(2),
+        _PX_VAR(2, i64),
         _PX_MUL,
         _PX_LBRC,
-        _PX_VAR(3),
+        _PX_VAR(3, i64),
         _PX_ADD,
-        _PX_VAR(4),
+        _PX_VAR(4, i64),
         _PX_DIV,
-        _PX_VAR(2),
+        _PX_VAR(2, i64),
         _PX_RBRC,
         _PX_DIV,
         _PX_LBRC,
-        _PX_VAR(1),
+        _PX_VAR(1, i64),
         _PX_ADD,
-        _PX_VAR(1),
+        _PX_VAR(1, i64),
         _PX_RBRC,
         _PX_RBRC,
         _PX_ADD,
-        _PX_VAR(1),
+        _PX_VAR(1, i64),
         _PX_SUB,
-        _PX_VAR(2),
+        _PX_VAR(2, i64),
         _PX_ADD,
-        _PX_VAR(5),
+        _PX_VAR(5, i64),
         _PX_MUL,
-        _PX_VAR(6),
+        _PX_VAR(6, i64),
         _PX_SUB,
         _PX_LBRC,
-        _PX_VAR(1),
+        _PX_VAR(1, i64),
         _PX_ADD,
-        _PX_VAR(2),
+        _PX_VAR(2, i64),
         _PX_MUL,
-        _PX_VAR(3),
+        _PX_VAR(3, i64),
         _PX_MUL,
-        _PX_VAR(4),
+        _PX_VAR(4, i64),
         _PX_DIV,
-        _PX_VAR(2),
+        _PX_VAR(2, i64),
         _PX_RBRC,
         _PX_RBRC,
         _PX_TERM,
@@ -477,46 +484,46 @@ START_TEST(test_parse_unmatched_bracket_nested)
     {
         _PX_LBRC,
         _PX_LBRC,
-        _PX_VAR(2),
+        _PX_VAR(2, i64),
         _PX_ADD,
-        _PX_VAR(3),
+        _PX_VAR(3, i64),
         _PX_RBRC,
         _PX_DIV,
-        _PX_VAR(2),
+        _PX_VAR(2, i64),
         _PX_MUL,
         _PX_LBRC,
-        _PX_VAR(3),
+        _PX_VAR(3, i64),
         _PX_ADD,
-        _PX_VAR(4),
+        _PX_VAR(4, i64),
         _PX_DIV,
-        _PX_VAR(2),
+        _PX_VAR(2, i64),
         _PX_RBRC,
         _PX_DIV,
         _PX_LBRC,
-        _PX_VAR(1),
+        _PX_VAR(1, i64),
         _PX_ADD,
-        _PX_VAR(1),
+        _PX_VAR(1, i64),
         _PX_RBRC,
         _PX_RBRC,
         _PX_ADD,
-        _PX_VAR(1),
+        _PX_VAR(1, i64),
         _PX_SUB,
-        _PX_VAR(2),
+        _PX_VAR(2, i64),
         _PX_ADD,
-        _PX_VAR(5),
+        _PX_VAR(5, i64),
         _PX_MUL,
-        _PX_VAR(6),
+        _PX_VAR(6, i64),
         _PX_SUB,
         _PX_LBRC,
-        _PX_VAR(1),
+        _PX_VAR(1, i64),
         _PX_ADD,
-        _PX_VAR(2),
+        _PX_VAR(2, i64),
         _PX_MUL,
-        _PX_VAR(3),
+        _PX_VAR(3, i64),
         _PX_MUL,
-        _PX_VAR(4),
+        _PX_VAR(4, i64),
         _PX_DIV,
-        _PX_VAR(2),
+        _PX_VAR(2, i64),
         _PX_RBRC,
         _PX_RBRC,
         _PX_RBRC,

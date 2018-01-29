@@ -6,46 +6,58 @@
 #ifndef POSTFIX_H
 #define POSTFIX_H
 
-// Maximum supported count of tokens in postfix notation.
+#include <stdbool.h>
+#include <stdint.h>
+
 #define PX_STACK_SIZE 1000
 
-// Basic token types.
+#define PX_STACK_PUSH(sp, value) (*(sp)++ = (value))
+#define PX_STACK_POP(sp)         (*--(sp))
+#define PX_STACK_TOP(sp)         (*((sp) - 1))
+
 enum {
-    // Termination token.
     PX_TOKEN_TERM,
-    // Variable.
     PX_TOKEN_VAR,
-    // Left bracket '('.
     PX_TOKEN_LBRC,
-    // Right bracket ')'.
     PX_TOKEN_RBRC,
 };
 
-// Library error codes.
 enum {
-    // Indicates success result.
     PX_SUCCESS,
-    // Indicates unmatched brackets.
     PX_E_UNMATCHED_BRACKET,
-    // Indicates exceeded PX_STACK_SIZE.
     PX_E_STAK_OVERFLOW,
-    // Indicates evaluation error.
-    PX_E_EVAL,
+    PX_E_UNEXPECTED_TOKEN,
+    PX_E_MISSING_ARGUMENT,
 };
 
-// Get length of array allocated in stack.
 #define PX_LEN(array) sizeof((array))/sizeof((*array))
-// Cast value to type of token.value.
-#define PX_VAL(value) ((void*)value)
 
-// Expression token.
+#ifndef PX_TOKEN_VALUE
+#define PX_TOKEN_VALUE
+#endif
+
+typedef union
+{
+    bool    b;
+    char    c;
+    int     i;
+    float   f;
+    double  d;
+    void*   p;
+    int8_t  i8;
+    int16_t i16;
+    int32_t i32;
+    int64_t i64;
+    PX_TOKEN_VALUE
+} px_value_t;
+
 typedef struct
 {
-    void* value;
-    int   type;
+    px_value_t value;
+    int        type;
 } px_token_t;
 
-typedef int (*px_func_t)(px_token_t*, void*);
+typedef int (*px_func_t)(px_value_t*, px_value_t*, void*);
 typedef int (*px_prio_t)(px_token_t);
 
 /*
@@ -67,6 +79,9 @@ typedef int (*px_prio_t)(px_token_t);
  */
 int px_parse(px_token_t* infix, px_token_t** postfix, px_prio_t prio);
 
-int px_eval(px_token_t* postfix, px_func_t* funcs, void* ctx);
+/*
+ * Evaluate expression in the postfix notation.
+ */
+int px_eval(px_token_t* postfix, void* ctx, px_value_t* res);
 
 #endif // !POSTFIX_H

@@ -5,21 +5,23 @@
  */
 #include "postfix.h"
 
+#include <stdlib.h>
+
 // #include <stdio.h>
 
 #define ISTERM(token) ((token).type == PX_TOKEN_TERM)
-// #define ISVAR(token)  ((token).type == PX_TOKEN_VAR)
-// #define ISFUNC(token) ((token).type > PX_TOKEN_RBRC)
+#define ISVAR(token)  ((token).type == PX_TOKEN_VAR)
+#define ISFUNC(token) ((token).type > PX_TOKEN_RBRC)
 #define ISLBRC(token) ((token).type == PX_TOKEN_LBRC)
 #define ISRBRC(token) ((token).type == PX_TOKEN_RBRC)
 
-#define STACK_PUSH(sp, value) (*(sp)++ = value)
-#define STACK_POP(sp)         (*--(sp))
-#define STACK_TOP(sp)         (*((sp) - 1))
+// #define STACK_PUSH(sp, value) (*(sp)++ = value)
+// #define STACK_POP(sp)         (*--(sp))
+// #define STACK_TOP(sp)         (*((sp) - 1))
 
 static const px_token_t PX_TERM = (px_token_t)
 {
-    .value = 0,
+    .value.i = 0,
     .type = PX_TOKEN_TERM
 };
 
@@ -53,11 +55,11 @@ static const px_token_t PX_TERM = (px_token_t)
 
 int px_parse(px_token_t* infix, px_token_t** postfix, px_prio_t prio)
 {
-    STACK_PUSH(*postfix, PX_TERM);
+    PX_STACK_PUSH(*postfix, PX_TERM);
 
     px_token_t stack[PX_STACK_SIZE];
     px_token_t* sp = stack;
-    STACK_PUSH(sp, PX_TERM);
+    PX_STACK_PUSH(sp, PX_TERM);
 
     for (int i = 0; !ISTERM(infix[i]); ++i)
     {
@@ -70,49 +72,76 @@ int px_parse(px_token_t* infix, px_token_t** postfix, px_prio_t prio)
         switch (token.type)
         {
             case PX_TOKEN_VAR:
-                STACK_PUSH(*postfix, token);
+                PX_STACK_PUSH(*postfix, token);
                 break;
             case PX_TOKEN_LBRC:
-                STACK_PUSH(sp, token);
+                PX_STACK_PUSH(sp, token);
                 break;
             case PX_TOKEN_RBRC:
                 {
                     px_token_t t;
-                    while (!ISLBRC(t = STACK_POP(sp)))
+                    while (!ISLBRC(t = PX_STACK_POP(sp)))
                     {
                         if (ISTERM(t))
                         {
                             return PX_E_UNMATCHED_BRACKET;
                         }
-                        STACK_PUSH(*postfix, t);
+                        PX_STACK_PUSH(*postfix, t);
                     }
                 }
                 break;
             default:
-                while (prio(token) <= prio(STACK_TOP(sp)))
+                while (prio(token) <= prio(PX_STACK_TOP(sp)))
                 {
-                    STACK_PUSH(*postfix, STACK_POP(sp));
+                    PX_STACK_PUSH(*postfix, PX_STACK_POP(sp));
                 }
-                STACK_PUSH(sp, token);
+                PX_STACK_PUSH(sp, token);
                 break;
         }
     }
 
     px_token_t t;
-    while (!ISTERM(t = STACK_POP(sp)))
+    while (!ISTERM(t = PX_STACK_POP(sp)))
     {
         if (ISLBRC(t))
         {
             return PX_E_UNMATCHED_BRACKET;
         }
-        STACK_PUSH(*postfix, t);
+        PX_STACK_PUSH(*postfix, t);
     }
 
     --*postfix;
     return PX_SUCCESS;
 }
 
-int px_eval(px_token_t* postfix, px_func_t* funcs, void* ctx)
+int px_eval(px_token_t* postfix, void* ctx, px_value_t* res)
 {
-    return PX_E_EVAL;
+    px_value_t stack[PX_STACK_SIZE];
+    px_value_t* sp = stack;
+
+    px_token_t token;
+    while (!ISTERM(token = PX_STACK_POP(postfix)))
+    {
+        if (ISVAR(token))
+        {
+            PX_STACK_PUSH(sp, token.value);
+        }
+        else if (ISFUNC(token))
+        {
+            px_func_t func = (px_func_t)token.value.p;
+
+            int err = func(stack, sp, ctx);
+            if (err != 0)
+            {
+                return err;
+            }
+        }
+        else
+        {
+            return PX_E_UNEXPECTED_TOKEN;
+        }
+    }
+
+    *res = token.value;
+    return PX_SUCCESS;
 }
