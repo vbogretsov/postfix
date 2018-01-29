@@ -7,7 +7,7 @@
 
 #include <stdlib.h>
 
-// #include <stdio.h>
+#include <stdio.h>
 
 #define ISTERM(token) ((token).type == PX_TOKEN_TERM)
 #define ISVAR(token)  ((token).type == PX_TOKEN_VAR)
@@ -26,21 +26,24 @@ static const px_token_t PX_TERM = (px_token_t)
 };
 
 // ****************************************************************************
-// static void print_token(px_token_t t)
-// {
-//     if (t.type == PX_TOKEN_VAR)
-//     {
-//         printf(" %d", (int)t.value);
-//     }
-//     else if (t.type == PX_TOKEN_TERM)
-//     {
-//         printf("%s", "");
-//     }
-//     else
-//     {
-//         printf(" %c", (char)t.value);
-//     }
-// }
+static void print_token(px_token_t t)
+{
+    // printf("%s:", "token");
+    // if (t.type == PX_TOKEN_VAR)
+    // {
+    //     printf(" %d", t.value.i64);
+    // }
+    // else if (t.type == PX_TOKEN_TERM)
+    // {
+    //     printf("%s", "TERM");
+    // }
+    // else
+    // {
+    //     printf("char %c", (char)t.value.c);
+    // }
+    // printf("%s\n", "");
+    printf("{.value = %d, .type = %d}\n", t.value.i64, t.type);
+}
 
 // static void print_stack(px_token_t* sp)
 // {
@@ -53,13 +56,10 @@ static const px_token_t PX_TERM = (px_token_t)
 // }
 // ****************************************************************************
 
-int px_parse(px_token_t* infix, px_token_t** postfix, px_prio_t prio)
+int px_parse(px_token_t* infix, px_token_t* postfix, px_prio_t prio)
 {
-    PX_STACK_PUSH(*postfix, PX_TERM);
-
     px_token_t stack[PX_STACK_SIZE];
     px_token_t* sp = stack;
-    PX_STACK_PUSH(sp, PX_TERM);
 
     for (int i = 0; !ISTERM(infix[i]); ++i)
     {
@@ -72,45 +72,49 @@ int px_parse(px_token_t* infix, px_token_t** postfix, px_prio_t prio)
         switch (token.type)
         {
             case PX_TOKEN_VAR:
-                PX_STACK_PUSH(*postfix, token);
+                PX_STACK_PUSH(postfix, token);
                 break;
             case PX_TOKEN_LBRC:
                 PX_STACK_PUSH(sp, token);
                 break;
             case PX_TOKEN_RBRC:
+                while (true)
                 {
-                    px_token_t t;
-                    while (!ISLBRC(t = PX_STACK_POP(sp)))
+                    if (sp == stack)
                     {
-                        if (ISTERM(t))
-                        {
-                            return PX_E_UNMATCHED_BRACKET;
-                        }
-                        PX_STACK_PUSH(*postfix, t);
+                        return PX_E_UNMATCHED_BRACKET;
                     }
+
+                    px_token_t t = PX_STACK_POP(sp);
+                    if (ISLBRC(t))
+                    {
+                        break;
+                    }
+
+                    PX_STACK_PUSH(postfix, t);
                 }
                 break;
             default:
                 while (prio(token) <= prio(PX_STACK_TOP(sp)))
                 {
-                    PX_STACK_PUSH(*postfix, PX_STACK_POP(sp));
+                    PX_STACK_PUSH(postfix, PX_STACK_POP(sp));
                 }
                 PX_STACK_PUSH(sp, token);
                 break;
         }
     }
 
-    px_token_t t;
-    while (!ISTERM(t = PX_STACK_POP(sp)))
+    while (sp > stack)
     {
+        px_token_t t = PX_STACK_POP(sp);
         if (ISLBRC(t))
         {
             return PX_E_UNMATCHED_BRACKET;
         }
-        PX_STACK_PUSH(*postfix, t);
+        PX_STACK_PUSH(postfix, t);
     }
 
-    --*postfix;
+    *postfix = PX_TERM;
     return PX_SUCCESS;
 }
 
@@ -119,9 +123,9 @@ int px_eval(px_token_t* postfix, void* ctx, px_value_t* res)
     px_value_t stack[PX_STACK_SIZE];
     px_value_t* sp = stack;
 
-    px_token_t token;
-    while (!ISTERM(token = PX_STACK_POP(postfix)))
+    for (int i = 0; !ISTERM(postfix[i]); ++i)
     {
+        px_token_t token = postfix[i];
         if (ISVAR(token))
         {
             PX_STACK_PUSH(sp, token.value);
@@ -142,6 +146,6 @@ int px_eval(px_token_t* postfix, void* ctx, px_value_t* res)
         }
     }
 
-    *res = token.value;
+    *res = *sp;
     return PX_SUCCESS;
 }

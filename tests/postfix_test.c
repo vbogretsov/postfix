@@ -9,37 +9,15 @@
 
 #define TEST_LOG "postfix_test.log"
 
-#define _PX_TOKEN_EQ(exp, act)                                                \
-do                                                                            \
-{                                                                             \
-    ck_assert((exp).type == (act).type);                                      \
-    ck_assert((exp).value.i64 == (act).value.i64);                            \
-} while (0)
-
 #define _PX_TOKEN(v, vt, tt) (px_token_t){.value.vt = (v), .type = (tt)}
 #define _PX_VAR(value, type) _PX_TOKEN(value, type, PX_TOKEN_VAR)
 
 // ****************************************************************************
 // #define ISTERM(token) ((token).type == PX_TOKEN_TERM)
 
-// #define STACK_PUSH(sp, value) (*(sp)++ = value)
-// #define STACK_POP(sp)         (*--(sp))
-// #define STACK_TOP(sp)         (*((sp) - 1))
-
 // static void print_token(px_token_t t)
 // {
-//     if (t.type == PX_TOKEN_VAR)
-//     {
-//         printf(" %d", t.value.i);
-//     }
-//     else if (t.type == PX_TOKEN_TERM)
-//     {
-//         printf("%s", "");
-//     }
-//     else
-//     {
-//         printf(" %c", (char)t.value.c);
-//     }
+//     printf("{.value = %d, .type = %d}\n", t.value.i64, t.type);
 // }
 
 // static void print_stack(px_token_t* sp)
@@ -56,16 +34,16 @@ do                                                                            \
 do                                                                            \
 {                                                                             \
     px_token_t* postfix = (px_token_t[PX_LEN(infix)]){};                      \
-    int err = px_parse(infix, &postfix, px_test_prio);                        \
+    int err = px_parse(infix, postfix, _px_prio);                             \
     ck_assert(err == PX_SUCCESS);                                             \
-    px_assert_stack_eq(expected + (PX_LEN(expected) - 1), postfix);           \
+    px_assert_stack_eq(expected, postfix);                                    \
 } while(0)
 
 #define _TEST_PX_PARSE_FAILED(infix, code)                                    \
 do                                                                            \
 {                                                                             \
     px_token_t* postfix = (px_token_t[PX_LEN(infix)]){};                      \
-    int err = px_parse(infix, &postfix, px_test_prio);                        \
+    int err = px_parse(infix, postfix, _px_prio);                             \
     ck_assert(err == (code));                                                 \
 } while(0)
 
@@ -96,6 +74,7 @@ enum
 
 static int _px_add(px_value_t* bp, px_value_t* sp, void* ctx)
 {
+    printf("%s\n", "_px_add");
     _PX_BINARY_OP(+);
 }
 
@@ -134,7 +113,7 @@ static int _PX_TEST_PRIO_MAP[] =
     2, // _PX_TEST_TOKEN_DIV
 };
 
-static int px_test_prio(px_token_t t)
+static int _px_prio(px_token_t t)
 {
     if (t.type < 0 || t.type > PX_LEN(_PX_TEST_PRIO_MAP))
     {
@@ -143,22 +122,27 @@ static int px_test_prio(px_token_t t)
     return _PX_TEST_PRIO_MAP[t.type];
 }
 
+static void px_assert_token_eq(px_token_t exp, px_token_t act)
+{
+    ck_assert(exp.type == act.type);
+    ck_assert(exp.value.i64 == act.value.i64);
+}
+
 static void px_assert_stack_eq(px_token_t* sp_exp, px_token_t* sp_act)
 {
-    while ((*sp_exp).type != PX_TOKEN_TERM && (*sp_act).type != PX_TOKEN_TERM)
+    while (sp_exp->type != PX_TOKEN_TERM && sp_act->type != PX_TOKEN_TERM)
     {
-        _PX_TOKEN_EQ(*sp_exp, *sp_act);
-
-        --sp_exp;
-        --sp_act;
+        px_token_t exp = *sp_exp++;
+        px_token_t act = *sp_act++;
+        px_assert_token_eq(exp, act);
     }
 
-    if ((*sp_exp).type != PX_TOKEN_TERM && (*sp_act).type == PX_TOKEN_TERM)
+    if (sp_exp->type != PX_TOKEN_TERM && sp_act->type == PX_TOKEN_TERM)
     {
         ck_abort_msg("len(expected) > len(actual)");
     }
 
-    if ((*sp_exp).type == PX_TOKEN_TERM && (*sp_act).type != PX_TOKEN_TERM)
+    if (sp_exp->type == PX_TOKEN_TERM && sp_act->type != PX_TOKEN_TERM)
     {
         ck_abort_msg("len(expected) < len(actual)");
     }
@@ -190,8 +174,8 @@ START_TEST(test_parse_single_var)
 
     px_token_t expected[] =
     {
-        _PX_TERM,
         _PX_VAR(1, i64),
+        _PX_TERM,
     };
 
     _TEST_PX_PARSE_SUCCESS(infix, expected);
@@ -210,10 +194,10 @@ START_TEST(test_parse_binary_op)
 
     px_token_t expected[] =
     {
-        _PX_TERM,
         _PX_VAR(2, i64),
         _PX_VAR(2, i64),
         _PX_ADD,
+        _PX_TERM,
     };
 
     _TEST_PX_PARSE_SUCCESS(infix, expected);
@@ -234,12 +218,12 @@ START_TEST(test_parse_different_prio)
 
     px_token_t expected[] =
     {
-        _PX_TERM,
         _PX_VAR(2, i64),
         _PX_VAR(3, i64),
         _PX_VAR(4, i64),
         _PX_MUL,
         _PX_ADD,
+        _PX_TERM,
     };
 
     _TEST_PX_PARSE_SUCCESS(infix, expected);
@@ -262,12 +246,12 @@ START_TEST(test_parse_brackets_simple)
 
     px_token_t expected[] =
     {
-        _PX_TERM,
         _PX_VAR(2, i64),
         _PX_VAR(3, i64),
         _PX_ADD,
         _PX_VAR(4, i64),
         _PX_MUL,
+        _PX_TERM,
     };
 
     _TEST_PX_PARSE_SUCCESS(infix, expected);
@@ -326,7 +310,6 @@ START_TEST(test_parse_brackets_complex)
 
     px_token_t expected[] =
     {
-        _PX_TERM,
         _PX_VAR(2, i64),
         _PX_VAR(3, i64),
         _PX_ADD,
@@ -360,6 +343,7 @@ START_TEST(test_parse_brackets_complex)
         _PX_DIV,
         _PX_ADD,
         _PX_SUB,
+        _PX_TERM,
     };
 
     _TEST_PX_PARSE_SUCCESS(infix, expected);
@@ -394,7 +378,6 @@ START_TEST(test_parse_brackets_nested)
 
     px_token_t expected[] =
     {
-        _PX_TERM,
         _PX_VAR(1, i64),
         _PX_VAR(2, i64),
         _PX_ADD,
@@ -402,6 +385,7 @@ START_TEST(test_parse_brackets_nested)
         _PX_VAR(1, i64),
         _PX_SUB,
         _PX_MUL,
+        _PX_TERM,
     };
 
     _TEST_PX_PARSE_SUCCESS(infix, expected);
@@ -566,6 +550,26 @@ START_TEST(test_parse_unmatched_bracket_nested)
 }
 END_TEST
 
+START_TEST(test_eval_simple)
+{
+    px_token_t postfix[] =
+    {
+        _PX_VAR(2, i64),
+        _PX_VAR(2, i64),
+        _PX_ADD,
+        _PX_TERM,
+    };
+
+    px_value_t res;
+    int err = px_eval(postfix, NULL, &res);
+
+    printf("err = %d\n", err);
+
+    ck_assert(err == PX_SUCCESS);
+    ck_assert(res.i64 == 4);
+}
+END_TEST
+
 static TCase* create_parse_tcase()
 {
     TCase* tcase = tcase_create("prefix_parse");
@@ -584,10 +588,18 @@ static TCase* create_parse_tcase()
     return tcase;
 }
 
+static TCase* create_eval_tcase()
+{
+    TCase* tcase = tcase_create("prefix_eval");
+    tcase_add_test(tcase, test_eval_simple);
+    return tcase;
+}
+
 static Suite* create_suite()
 {
     Suite* suite = suite_create("postfix");
     suite_add_tcase(suite, create_parse_tcase());
+    suite_add_tcase(suite, create_eval_tcase());
     return suite;
 }
 

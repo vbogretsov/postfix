@@ -77,7 +77,7 @@ typedef int (*px_prio_t)(px_token_t);
  *                pair of brackets,
  *                PX_E_STAK_OVERFLOW if infix expression is too big.
  */
-int px_parse(px_token_t* infix, px_token_t** postfix, px_prio_t prio);
+int px_parse(px_token_t* infix, px_token_t* postfix, px_prio_t prio);
 
 /*
  * Evaluate expression in the postfix notation.
