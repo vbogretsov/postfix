@@ -7,10 +7,6 @@
   "keywords": [
     "postfix"
   ],
-  "src": [
-    "postfix/postfix.c",
-    "postfix/postfix.h"
-  ],
   "development": {
     "cmocka": "*",
     "clibs/cmocka": "1.0.0"
