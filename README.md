@@ -275,12 +275,12 @@ array of tokens:
 px_token_t infix[] =
     {
         (px_token_t){.type = PX_TOKEN_LBRK},
-        (px_token_t){.value.i64 = 2, .type = PX_TOKEN_VAR},
-        (px_token_t){.value.op = _px_add, .type = _PX_TOKEN_ADD},
-        (px_token_t){.value.i64 = 3, .type = PX_TOKEN_VAR},
+        (px_token_t){.type = PX_TOKEN_VAR, .value.i64 = 2},
+        (px_token_t){.type = _PX_TOKEN_ADD, .value.op = _px_add},
+        (px_token_t){.type = PX_TOKEN_VAR, .value.i64 = 3},
         (px_token_t){.type = PX_TOKEN_RBRK},
-        (px_token_t){.value.op = _px_mul, .type = _PX_TOKEN_MUL},
-        (px_token_t){.value.i64 = 4, .type = PX_TOKEN_VAR},
+        (px_token_t){.type = _PX_TOKEN_MUL, .value.op = _px_mul},
+        (px_token_t){.type = PX_TOKEN_VAR, .value.i64 = 4},
         (px_token_t){.type = PX_TOKEN_TERM},
     };
 ```
@@ -288,15 +288,17 @@ px_token_t infix[] =
 using the following code:
 
 ```C
+int err;
 px_token_t* postfix = (px_token_t[PX_LEN(infix)]){};
 
-int err = px_parse(infix, postfix, _px_prio);
+err = px_parse(infix, postfix, _px_prio);
 if (err != PX_SUCCESS)
 {
     // handle error
 }
 
 px_value_t res;
+
 err = px_eval(postfix, NULL, &res);
 if (err != PX_SUCCESS)
 {
