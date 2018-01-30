@@ -285,7 +285,25 @@ px_token_t infix[] =
     };
 ```
 
-using the functions `px_parse` and `px_eval`.
+using the following code:
+
+```C
+px_token_t* postfix = (px_token_t[PX_LEN(infix)]){};
+
+int err = px_parse(infix, postfix, _px_prio);
+if (err != PX_SUCCESS)
+{
+    // handle error
+}
+
+px_value_t res;
+err = px_eval(postfix, NULL, &res);
+if (err != PX_SUCCESS)
+{
+    // handle error
+}
+// res.i64 contains the result.
+```
 
 ## Licence
 
