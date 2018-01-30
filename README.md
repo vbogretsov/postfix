@@ -59,7 +59,7 @@ union px_value
 
 User can define macro PX_TOKEN_VALUE to extend available types.
 
-The parameter `infix` should be terminated by the token with type
+The parameter `infix` should be terminated by the token of type
 `PX_TOKEN_TERM`. User is responsible to build the correct array of tokens
 representing the expression.
 
@@ -67,7 +67,7 @@ The parameter `postfix` is an empty array which size is enough to store all the
 tokens of `infix` except the brackets. User can use the macro `PX_LEN` to get
 the correct size of `postfix` if `infix` is an array located in stack. After
 the function `px_parse` exists the `postfix` array will contain tokens of
-expression in the postfix notation terminated by the token with type
+expression in the postfix notation terminated by the token of type
 `PX_TOKEN_TERM`.
 
 The parameter `prio` is a pointer to a function with the following signature:
@@ -134,7 +134,7 @@ Here the parameter `postfix` is an array terminated by the token of type
 `PX_TOKEN_TERM` that represents the expression in the postfix notation.
 
 The parameter `ctx` will be passed to values of tokens representing arithmetic
-operations or functions (values for type `px_func_t` which is described above).
+operations or functions (values of type `px_func_t` which is described above).
 
 ### Example
 
