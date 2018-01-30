@@ -254,7 +254,7 @@ static int _px_div(px_value_t* bp, px_value_t** sp, void* ctx)
 
     if (a == 0)
     {
-
+        return _PX_E_DIVISION_BY_ZERO;
     }
 
     if (*sp == bp)
