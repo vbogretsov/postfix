@@ -103,10 +103,6 @@ static int _PX_TEST_PRIO_MAP[] =
 
 static int _px_prio(px_token_t t)
 {
-    if (t.type < 0 || t.type > PX_LEN(_PX_TEST_PRIO_MAP))
-    {
-        return -1;
-    }
     return _PX_TEST_PRIO_MAP[t.type];
 }
 

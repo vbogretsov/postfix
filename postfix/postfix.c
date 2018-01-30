@@ -58,7 +58,7 @@ int px_parse(px_token_t* infix, px_token_t* postfix, px_prio_t prio)
                 }
                 break;
             default:
-                while (prio(token) <= prio(PX_STACK_TOP(sp)))
+                while (sp != stack && prio(token) <= prio(PX_STACK_TOP(sp)))
                 {
                     PX_STACK_PUSH(postfix, PX_STACK_POP(sp));
                 }
