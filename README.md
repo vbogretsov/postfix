@@ -136,12 +136,156 @@ Here the parameter `postfix` is an array terminated by the token of type
 The parameter `ctx` will be passed to values of tokens representing arithmetic
 operations or functions (values of type `px_func_t` which is described above).
 
+The function `px_eval` returns the following error codes:
+
+ * `PX_SUCCESS` -- if evaluation succeeded
+ * `PX_E_UNEXPECTED_TOKEN` -- if postfix contains token that is not variable
+   or function
+ * `PX_E_STACK_CORRUPTED` -- if stack size is not 1 at the end of
+   calculation (which can be cause by incorrect implementation of `px_func_t`).
+ * A user defined error code which is the result of execution a function of
+   type`px_funct_t`.
+
 ### Example
 
-Let's consider how to use it to calculate expressions of integers with the
-following operations: `+` `-` `*` `/`.
+Let's consider how to use the `postfix` library to calculate expressions of
+integers with the following operations: `+` `-` `*` `/`. (In the code pieces
+below it is assumed the header `postfix.h` is included)
 
-TODO
+First of all we need to declare types of new operations:
+
+```C
+enum
+{
+    _PX_TEST_TOKEN_ADD = PX_TOKEN_RBRC + 1,
+    _PX_TEST_TOKEN_SUB,
+    _PX_TEST_TOKEN_MUL,
+    _PX_TEST_TOKEN_DIV,
+};
+```
+
+We also need to specify to the library priority of each operation:
+
+```C
+static int _PX_TEST_PRIO_MAP[] =
+{
+    0, // PX_TOKEN_TERM
+    0, // PX_TOKEN_VAR
+    0, // PX_TOKEN_LBRC
+    0, // PX_TOKEN_RBRC
+    1, // _PX_TEST_TOKEN_ADD
+    1, // _PX_TEST_TOKEN_SUB
+    2, // _PX_TEST_TOKEN_MUL
+    2, // _PX_TEST_TOKEN_DIV
+};
+
+static int _px_prio(px_token_t t)
+{
+    return _PX_TEST_PRIO_MAP[t.type];
+}
+```
+
+And define functions representing arithmetic operations:
+
+```C
+static const int _PX_E_DIVISION_BY_ZERO = PX_E_STACK_CORRUPTED + 1;
+
+static int _px_add(px_value_t* bp, px_value_t** sp, void* ctx)
+{
+    if (*sp == bp)
+    {
+        return PX_E_MISSING_ARGUMENT;
+    }
+    int64_t a = PX_STACK_POP(*sp).i64;
+
+    if (*sp == bp)
+    {
+        return PX_E_MISSING_ARGUMENT;
+    }
+    int64_t b = PX_STACK_POP(*sp).i64;
+
+    PX_STACK_PUSH(*sp, (px_value_t){.i64 = b + a});
+    return PX_SUCCESS;
+}
+
+static int _px_sub(px_value_t* bp, px_value_t** sp, void* ctx)
+{
+    if (*sp == bp)
+    {
+        return PX_E_MISSING_ARGUMENT;
+    }
+    int64_t a = PX_STACK_POP(*sp).i64;
+
+    if (*sp == bp)
+    {
+        return PX_E_MISSING_ARGUMENT;
+    }
+    int64_t b = PX_STACK_POP(*sp).i64;
+
+    PX_STACK_PUSH(*sp, (px_value_t){.i64 = b - a});
+    return PX_SUCCESS;
+}
+
+static int _px_mul(px_value_t* bp, px_value_t** sp, void* ctx)
+{
+    if (*sp == bp)
+    {
+        return PX_E_MISSING_ARGUMENT;
+    }
+    int64_t a = PX_STACK_POP(*sp).i64;
+
+    if (*sp == bp)
+    {
+        return PX_E_MISSING_ARGUMENT;
+    }
+    int64_t b = PX_STACK_POP(*sp).i64;
+
+    PX_STACK_PUSH(*sp, (px_value_t){.i64 = b * a});
+    return PX_SUCCESS;
+}
+
+static int _px_div(px_value_t* bp, px_value_t** sp, void* ctx)
+{
+    if (*sp == bp)
+    {
+        return PX_E_MISSING_ARGUMENT;
+    }
+    int64_t a = PX_STACK_POP(*sp).i64;
+
+    if (a == 0)
+    {
+
+    }
+
+    if (*sp == bp)
+    {
+        return PX_E_MISSING_ARGUMENT;
+    }
+    int64_t b = PX_STACK_POP(*sp).i64;
+
+    PX_STACK_PUSH(*sp, (px_value_t){.i64 = b / a});
+    return PX_SUCCESS;
+}
+```
+
+Now we can calculate expression `(2 + 3) * 4` represented by the following
+array of tokens:
+
+```C
+px_token_t infix[] =
+    {
+        (px_token_t){.type = PX_TOKEN_LBRK},
+        (px_token_t){.value.i64 = 2, .type = PX_TOKEN_VAR},
+        (px_token_t){.value.op = _px_add, .type = _PX_TOKEN_ADD},
+        (px_token_t){.value.i64 = 3, .type = PX_TOKEN_VAR},
+        (px_token_t){.type = PX_TOKEN_RBRK},
+        (px_token_t){.value.op = _px_mul, .type = _PX_TOKEN_MUL},
+        (px_token_t){.value.i64 = 4, .type = PX_TOKEN_VAR},
+        (px_token_t){.type = PX_TOKEN_TERM},
+    };
+```
+
+using the functions `px_parse` and `px_eval`.
 
 ## Licence
 
