@@ -87,7 +87,7 @@ int px_parse(px_token_t* infix, px_token_t* postfix, px_prio_t prio);
  * @param res     Calculation result.
  * @return        PX_SUCCESS - if evaluation succeeded,
  *                PX_E_UNEXPECTED_TOKEN - if postfix contains token that is not
- *                variable or function.
+ *                variable or function,
  *                PX_E_STACK_CORRUPTED - if stack size is not 1 at the end of
  *                calculation (which can be cause by incorrect implementation
  *                of px_func_t).
