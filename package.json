@@ -1,0 +1,9 @@
+{
+    "name": "postfix",
+    "repo": "vbogretsov/postfix",
+    "version": "0.1.0",
+    "license": "MIT",
+    "description": "postfix notation library",
+    "keywords": ["postfix"],
+    "install": "make install"
+}
