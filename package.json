@@ -5,5 +5,9 @@
     "license": "MIT",
     "description": "postfix notation library",
     "keywords": ["postfix"],
-    "install": "make install"
+    "install": "make install",
+    "src": [
+        "postfix/postfix.c",
+        "postfix/postfix.h"
+    ]
 }
