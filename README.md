@@ -4,6 +4,16 @@ C postfix notation library.
 
 ## Usage
 
+### Compilation
+
+```bash
+$ git clone https://github.com/vbogretsov/postfix.git
+$ cd postfix
+$ make
+```
+
+`make` produces the static library `libpostfix.a` in the folder `lib`.
+
 ### API description
 
 The `postix` library allows to evaluate expressions according to custom rules.
