@@ -2,10 +2,12 @@
 #include <string.h>
 #include <time.h>
 
-#include <check.h>
-#include <postfix.h>
+#include <stdarg.h>
+#include <stddef.h>
+#include <setjmp.h>
+#include <cmockery/cmockery.h>
 
-#define TEST_LOG "postfix_test.log"
+#include <postfix/postfix.h>
 
 #define _PX_TOKEN(v, vt, tt) (px_token_t){.value.vt = (v), .type = (tt)}
 #define _PX_VAR(value, type) _PX_TOKEN(value, type, PX_TOKEN_VAR)
@@ -15,7 +17,7 @@ do                                                                            \
 {                                                                             \
     px_token_t* postfix = (px_token_t[PX_LEN(infix)]){};                      \
     int err = px_parse(infix, postfix, _px_prio);                             \
-    ck_assert(err == PX_SUCCESS);                                             \
+    assert_true(err == PX_SUCCESS);                                           \
     px_assert_stack_eq(expected, postfix);                                    \
 } while(0)
 
@@ -24,7 +26,7 @@ do                                                                            \
 {                                                                             \
     px_token_t* postfix = (px_token_t[PX_LEN(infix)]){};                      \
     int err = px_parse(infix, postfix, _px_prio);                             \
-    ck_assert(err == (code));                                                 \
+    assert_true(err == (code));                                               \
 } while(0)
 
 #define _TEST_PX_EVAL_SUCCESS(postfix, expected)                              \
@@ -32,8 +34,8 @@ do                                                                            \
 {                                                                             \
     px_value_t res;                                                           \
     int err = px_eval((postfix), NULL, &res);                                 \
-    ck_assert(err == PX_SUCCESS);                                             \
-    ck_assert(res.i64 == (expected));                                         \
+    assert_true(err == PX_SUCCESS);                                           \
+    assert_true(res.i64 == (expected));                                       \
 } while (0)
 
 #define _PX_BINARY_OP(op)                                                     \
@@ -108,8 +110,8 @@ static int _px_prio(px_token_t t)
 
 static void px_assert_token_eq(px_token_t exp, px_token_t act)
 {
-    ck_assert(exp.type == act.type);
-    ck_assert(exp.value.i64 == act.value.i64);
+    assert_true(exp.type == act.type);
+    assert_true(exp.value.i64 == act.value.i64);
 }
 
 static void px_assert_stack_eq(px_token_t* sp_exp, px_token_t* sp_act)
@@ -121,18 +123,11 @@ static void px_assert_stack_eq(px_token_t* sp_exp, px_token_t* sp_act)
         px_assert_token_eq(exp, act);
     }
 
-    if (sp_exp->type != PX_TOKEN_TERM && sp_act->type == PX_TOKEN_TERM)
-    {
-        ck_abort_msg("len(expected) > len(actual)");
-    }
-
-    if (sp_exp->type == PX_TOKEN_TERM && sp_act->type != PX_TOKEN_TERM)
-    {
-        ck_abort_msg("len(expected) < len(actual)");
-    }
+    assert_int_equal(sp_exp->type, PX_TOKEN_TERM);
+    assert_int_equal(sp_act->type, PX_TOKEN_TERM);
 }
 
-START_TEST(test_parse_empty_infix)
+void test_parse_empty_infix(void** state)
 {
     px_token_t infix[] =
     {
@@ -146,9 +141,8 @@ START_TEST(test_parse_empty_infix)
 
     _TEST_PX_PARSE_SUCCESS(infix, expected);
 }
-END_TEST
 
-START_TEST(test_parse_single_var)
+void test_parse_single_var(void** state)
 {
     px_token_t infix[] =
     {
@@ -164,9 +158,8 @@ START_TEST(test_parse_single_var)
 
     _TEST_PX_PARSE_SUCCESS(infix, expected);
 }
-END_TEST
 
-START_TEST(test_parse_binary_op)
+void test_parse_binary_op(void** state)
 {
     px_token_t infix[] =
     {
@@ -186,9 +179,8 @@ START_TEST(test_parse_binary_op)
 
     _TEST_PX_PARSE_SUCCESS(infix, expected);
 }
-END_TEST
 
-START_TEST(test_parse_different_prio)
+void test_parse_different_prio(void** state)
 {
     px_token_t infix[] =
     {
@@ -212,9 +204,8 @@ START_TEST(test_parse_different_prio)
 
     _TEST_PX_PARSE_SUCCESS(infix, expected);
 }
-END_TEST
 
-START_TEST(test_parse_brackets_simple)
+void test_parse_brackets_simple(void** state)
 {
     px_token_t infix[] =
     {
@@ -240,9 +231,8 @@ START_TEST(test_parse_brackets_simple)
 
     _TEST_PX_PARSE_SUCCESS(infix, expected);
 }
-END_TEST
 
-START_TEST(test_parse_brackets_complex)
+void test_parse_brackets_complex(void** state)
 {
     px_token_t infix[] =
     {
@@ -332,9 +322,8 @@ START_TEST(test_parse_brackets_complex)
 
     _TEST_PX_PARSE_SUCCESS(infix, expected);
 }
-END_TEST
 
-START_TEST(test_parse_brackets_nested)
+void test_parse_brackets_nested(void** state)
 {
     px_token_t infix[] =
     {
@@ -374,9 +363,8 @@ START_TEST(test_parse_brackets_nested)
 
     _TEST_PX_PARSE_SUCCESS(infix, expected);
 }
-END_TEST
 
-START_TEST(test_parse_brackets_empty)
+void test_parse_brackets_empty(void** state)
 {
     px_token_t infix[] =
     {
@@ -392,9 +380,8 @@ START_TEST(test_parse_brackets_empty)
 
     _TEST_PX_PARSE_SUCCESS(infix, expected);
 }
-END_TEST
 
-START_TEST(test_parse_unmatched_bracket_single)
+void test_parse_unmatched_bracket_single(void** state)
 {
     px_token_t infix[] =
     {
@@ -404,9 +391,8 @@ START_TEST(test_parse_unmatched_bracket_single)
 
     _TEST_PX_PARSE_FAILED(infix, PX_E_UNMATCHED_BRACKET);
 }
-END_TEST
 
-START_TEST(test_parse_unmatched_bracket_simple)
+void test_parse_unmatched_bracket_simple(void** state)
 {
     px_token_t infix[] =
     {
@@ -421,9 +407,8 @@ START_TEST(test_parse_unmatched_bracket_simple)
 
     _TEST_PX_PARSE_FAILED(infix, PX_E_UNMATCHED_BRACKET);
 }
-END_TEST
 
-START_TEST(test_parse_unmatched_bracket_complex)
+void test_parse_unmatched_bracket_complex(void** state)
 {
     px_token_t infix[] =
     {
@@ -476,9 +461,8 @@ START_TEST(test_parse_unmatched_bracket_complex)
 
     _TEST_PX_PARSE_FAILED(infix, PX_E_UNMATCHED_BRACKET);
 }
-END_TEST
 
-START_TEST(test_parse_unmatched_bracket_nested)
+void test_parse_unmatched_bracket_nested(void** state)
 {
     px_token_t infix[] =
     {
@@ -532,9 +516,8 @@ START_TEST(test_parse_unmatched_bracket_nested)
 
     _TEST_PX_PARSE_FAILED(infix, PX_E_UNMATCHED_BRACKET);
 }
-END_TEST
 
-START_TEST(test_eval_binary_op)
+void test_eval_binary_op(void** state)
 {
     px_token_t postfix[] =
     {
@@ -546,9 +529,8 @@ START_TEST(test_eval_binary_op)
 
     _TEST_PX_EVAL_SUCCESS(postfix, 4);
 }
-END_TEST
 
-START_TEST(test_eval_different_prio)
+void test_eval_different_prio(void** state)
 {
     px_token_t postfix[] =
     {
@@ -562,9 +544,8 @@ START_TEST(test_eval_different_prio)
 
     _TEST_PX_EVAL_SUCCESS(postfix, 14);
 }
-END_TEST
 
-START_TEST(test_eval_brackets_simple)
+void test_eval_brackets_simple(void** state)
 {
     px_token_t postfix[] =
     {
@@ -576,11 +557,10 @@ START_TEST(test_eval_brackets_simple)
         _PX_TERM,
     };
 
-    _TEST_PX_EVAL_SUCCESS(postfix, 20);
+    _TEST_PX_EVAL_SUCCESS(postfix, 21);
 }
-END_TEST
 
-START_TEST(test_eval_brackets_complex)
+void test_eval_brackets_complex(void** state)
 {
     px_token_t postfix[] =
     {
@@ -622,58 +602,26 @@ START_TEST(test_eval_brackets_complex)
 
     _TEST_PX_EVAL_SUCCESS(postfix, 200);
 }
-END_TEST
-
-
-static TCase* create_parse_tcase()
-{
-    TCase* tcase = tcase_create("prefix_parse");
-    tcase_add_test(tcase, test_parse_empty_infix);
-    tcase_add_test(tcase, test_parse_single_var);
-    tcase_add_test(tcase, test_parse_binary_op);
-    tcase_add_test(tcase, test_parse_different_prio);
-    tcase_add_test(tcase, test_parse_brackets_simple);
-    tcase_add_test(tcase, test_parse_brackets_complex);
-    tcase_add_test(tcase, test_parse_brackets_nested);
-    tcase_add_test(tcase, test_parse_brackets_empty);
-    tcase_add_test(tcase, test_parse_unmatched_bracket_single);
-    tcase_add_test(tcase, test_parse_unmatched_bracket_simple);
-    tcase_add_test(tcase, test_parse_unmatched_bracket_complex);
-    tcase_add_test(tcase, test_parse_unmatched_bracket_nested);
-    return tcase;
-}
-
-static TCase* create_eval_tcase()
-{
-    TCase* tcase = tcase_create("prefix_eval");
-    tcase_add_test(tcase, test_eval_binary_op);
-    tcase_add_test(tcase, test_eval_different_prio);
-    tcase_add_test(tcase, test_eval_brackets_simple);
-    tcase_add_test(tcase, test_eval_brackets_complex);
-    return tcase;
-}
-
-static Suite* create_suite()
-{
-    Suite* suite = suite_create("postfix");
-    suite_add_tcase(suite, create_parse_tcase());
-    suite_add_tcase(suite, create_eval_tcase());
-    return suite;
-}
 
 int main(void)
 {
-    srand(time(0));
-
-    Suite* suite = create_suite();
-
-    SRunner* runner = srunner_create(suite);
-    srunner_set_xml(runner, TEST_LOG);
-    srunner_set_fork_status(runner, CK_NOFORK);
-    srunner_run_all(runner, CK_VERBOSE);
-
-    int number_failed = srunner_ntests_failed(runner);
-    srunner_free(runner);
-
-    return (number_failed == 0) ? EXIT_SUCCESS : EXIT_FAILURE;
+    const UnitTest tests[] = {
+        unit_test(test_parse_empty_infix),
+        unit_test(test_parse_single_var),
+        unit_test(test_parse_binary_op),
+        unit_test(test_parse_different_prio),
+        unit_test(test_parse_brackets_simple),
+        unit_test(test_parse_brackets_complex),
+        unit_test(test_parse_brackets_nested),
+        unit_test(test_parse_brackets_empty),
+        unit_test(test_parse_unmatched_bracket_single),
+        unit_test(test_parse_unmatched_bracket_simple),
+        unit_test(test_parse_unmatched_bracket_complex),
+        unit_test(test_parse_unmatched_bracket_nested),
+        unit_test(test_eval_binary_op),
+        unit_test(test_eval_different_prio),
+        unit_test(test_eval_brackets_simple),
+        unit_test(test_eval_brackets_complex),
+    };
+    return run_tests(tests);
 }
