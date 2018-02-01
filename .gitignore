@@ -6,6 +6,7 @@
 
 # Binary files
 *.bin
+*bin/
 
 # Object files
 *.o

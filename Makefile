@@ -1,6 +1,3 @@
-# TODO: custom flags for tests
-CC             = clang
-LD             = clang
 DIROBJ         = obj
 DIRBIN         = bin
 DIRLIB         = lib
@@ -10,7 +7,7 @@ DIRTESTSRC     = tests
 DIRCHECK       = $(DIRDEPS)/check
 DIRCHECLIB     = $(DIRCHECK)/src/.libs
 CHEKMAKE       = $(DIRCHECK)/Makefile
-CCFLAGS       += -g -I$(DIRCHECK)/src/ -I$(DIRCHECK) -I$(DIRSRC)
+CFLAGS        += -g -I$(DIRCHECK)/src/ -I$(DIRCHECK) -I$(DIRSRC)
 LDFLAGS       += -L$(DIRLIB)
 SRC           := $(wildcard $(DIRSRC)/*.c)
 OBJ           := $(addprefix $(DIROBJ)/,$(notdir $(SRC:.c=.o)))
@@ -21,7 +18,7 @@ LIBCHECK       = $(DIRLIB)/libcheck.a
 LIBPOSTFIX     = $(DIRLIB)/libpostfix.a
 
 default: $(LIBPOSTFIX)
-	echo $(LDFLAGS)
+	
 
 $(DIROBJ): $(DIRBIN)
 	@mkdir -p $@
@@ -43,10 +40,10 @@ $(LIBPOSTFIX): $(OBJ) $(DIRLIB)
 	$(AR) -rsc $@ $(OBJ)
 
 $(DIROBJ)/%.o: $(DIRSRC)/%.c $(DIROBJ)
-	$(CC) $(CCFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
 $(DIROBJ)/%.o: $(DIRTESTSRC)/%.c $(DIROBJ)
-	$(CC) $(CCFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
 $(TEST): $(TESTOBJ) $(LIBCHECK) $(LIBPOSTFIX)
 	$(LD) $(LDFLAGS) -lcheck -lpostfix -o $@ $(TESTOBJ)
@@ -58,4 +55,4 @@ clean:
 	rm -rf $(DIROBJ)
 	rm -rf $(DIRBIN)
 	rm -rf $(DIRLIB)
-	cd $(DIRCHECK) && make clean
+	# cd $(DIRCHECK) && make clean
