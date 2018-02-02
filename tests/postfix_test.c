@@ -557,7 +557,7 @@ void test_eval_brackets_simple(void** state)
         _PX_TERM,
     };
 
-    _TEST_PX_EVAL_SUCCESS(postfix, 21);
+    _TEST_PX_EVAL_SUCCESS(postfix, 20);
 }
 
 void test_eval_brackets_complex(void** state)

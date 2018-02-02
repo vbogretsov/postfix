@@ -12,6 +12,6 @@
     "postfix/postfix.h"
   ],
   "development": {
-    "vbogretsov/cmockery": "1.0.0"
+    "vbogretsov/cmockery": "*"
   }
 }
