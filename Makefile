@@ -1,4 +1,4 @@
-CFLAGS         += -Ideps -I.
+CFLAGS         += -Ideps -I. -Wall -pedantic
 DIRDEPS         = deps
 SRC             = $(wildcard postfix/*.c) $(wildcard tests/*.c)
 DEPS            = $(wildcard $(DIRDEPS)/*/*.c)
@@ -7,7 +7,7 @@ DIRCMOCKERY     = $(DIRDEPS)/cmockery/
 CMOCKERYCONFIGH = $(DIRCMOCKERY)/config.h
 TEST            = runtests
 
-default: test
+default: $(OBJS)
 
 $(CMOCKERYCONFIGH):
 	cd $(DIRCMOCKERY) && chmod u+x configure && ./configure
