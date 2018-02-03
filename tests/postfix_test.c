@@ -15,8 +15,8 @@
 #define _TEST_PX_PARSE_SUCCESS(infix, expected)                               \
 do                                                                            \
 {                                                                             \
-    px_token_t* postfix = (px_token_t[PX_LEN(infix)]){};                      \
-    int err = px_parse(infix, postfix, _px_prio);                             \
+    px_token_t postfix[PX_LEN(infix)];                                        \
+    int err = px_parse(infix, (px_token_t*)postfix, _px_prio);                \
     assert_true(err == PX_SUCCESS);                                           \
     px_assert_stack_eq(expected, postfix);                                    \
 } while(0)
@@ -24,8 +24,8 @@ do                                                                            \
 #define _TEST_PX_PARSE_FAILED(infix, code)                                    \
 do                                                                            \
 {                                                                             \
-    px_token_t* postfix = (px_token_t[PX_LEN(infix)]){};                      \
-    int err = px_parse(infix, postfix, _px_prio);                             \
+    px_token_t postfix[PX_LEN(infix)];                                        \
+    int err = px_parse(infix, (px_token_t*)postfix, _px_prio);                \
     assert_true(err == (code));                                               \
 } while(0)
 
@@ -517,6 +517,17 @@ void test_parse_unmatched_bracket_nested(void** state)
     _TEST_PX_PARSE_FAILED(infix, PX_E_UNMATCHED_BRACKET);
 }
 
+void test_eval_single_var(void** state)
+{
+    px_token_t postfix[] =
+    {
+        _PX_VAR(3, i64),
+        _PX_TERM,
+    };
+
+    _TEST_PX_EVAL_SUCCESS(postfix, 3);
+}
+
 void test_eval_binary_op(void** state)
 {
     px_token_t postfix[] =
@@ -618,6 +629,7 @@ int main(void)
         unit_test(test_parse_unmatched_bracket_simple),
         unit_test(test_parse_unmatched_bracket_complex),
         unit_test(test_parse_unmatched_bracket_nested),
+        unit_test(test_eval_single_var),
         unit_test(test_eval_binary_op),
         unit_test(test_eval_different_prio),
         unit_test(test_eval_brackets_simple),
